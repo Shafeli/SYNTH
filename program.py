@@ -12,6 +12,11 @@ from WorkingDirectory import WorkingDirectory
 # TODO: Add a boot folder
 
 
+def g_boot_path(value):
+    global boot_path
+    boot_path = value
+
+
 def saved_paths():
     global saved_working_paths
 
@@ -99,6 +104,11 @@ def go_to_command(value, _working_directory):
     words = value.split()
     command = words[0]  # Access the first word (command)
 
+    if command == 'BOOT':
+        if boot_path:
+            _working_directory.set_working_dir(boot_path)
+            return
+
     # If passed just a command and no target
     if len(words) == 1:
         print_colored_text("Would you like to use a pre-saved file path? Enter n = No y = Yes: ", "YELLOW")
@@ -176,6 +186,31 @@ def open_command(value, _working_dir):
     _working_dir.open_in_explorer()
 
 
+def set_command(value, _working_dir):
+    cases = {
+        'BOOT': boot_command
+    }
+
+    # Convert the value to uppercase for case-insensitive matching
+    upper_value = value.upper()
+    words = upper_value.split()
+    command = words[1]  # Access the second word (sub-command)
+    # Get the function associated with the value, or default_case if not found
+    handler = cases.get(command, default_case)
+    # Call the retrieved function
+    handler(value, _working_dir)
+
+
+def boot_command(value, _working_dir):
+    print_colored_text("What Saved path would you like to set as a boot folder? ", "YELLOW")
+    input_response = input()
+
+    if input_response != 'reset':
+        g_boot_path(saved_working_paths[input_response])
+    else:
+        g_boot_path({})
+
+
 def process_input(value, _working_dir):
     cases = {
         'GOTO': go_to_command,
@@ -185,7 +220,8 @@ def process_input(value, _working_dir):
         'RENAME': rename_command,               # 'RENAME <target>'
         'QUIT': quit_command,                   # 'QUIT'
         'DELETE': delete_command,               # 'DELETE'
-        'OPEN': open_command                    # 'OPEN'
+        'OPEN': open_command,                   # 'OPEN'
+        'SET': set_command                      # 'SET'
     }
 
     # Convert the value to uppercase for case-insensitive matching
@@ -201,13 +237,16 @@ def process_input(value, _working_dir):
 if __name__ == '__main__':
 
     saved_paths_data = JSONFileManager("saved_paths", "JSON_Data")
+    boot_path_data = JSONFileManager("boot_path", "JSON_Boot_Data")
+
     working_directory = WorkingDirectory()
 
     quit_flag = False
 
     saved_working_paths = saved_paths_data.read_json_file()
+    boot_path = boot_path_data.read_json_file()
 
-    junk = "GOTO"
+    junk = "BOOT"
     go_to_command(junk, working_directory)
 
     while not quit_flag:
@@ -221,3 +260,4 @@ if __name__ == '__main__':
     # Save out the dictionary to the json file
     print(saved_working_paths)
     saved_paths_data.save_json_file(saved_working_paths)
+    boot_path_data.save_json_file(boot_path)
